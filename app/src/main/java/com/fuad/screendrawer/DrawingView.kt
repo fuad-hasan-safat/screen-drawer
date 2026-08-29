@@ -8,32 +8,43 @@ import android.graphics.Path
 import android.view.MotionEvent
 import android.view.View
 
+/**
+ * Full-screen transparent canvas. Holds a list of finished strokes (each with
+ * its own color + width so undo/redo history stays accurate even if the user
+ * changes color or brush size mid-session) plus the stroke currently being drawn.
+ */
 class DrawingView(context: Context) : View(context) {
 
-    private val strokes = mutableListOf<Pair<Path, Int>>()
+    private data class Stroke(val path: Path, val color: Int, val width: Float)
+
+    private val strokes = mutableListOf<Stroke>()
     private var currentPath = Path()
 
-    private val colors = listOf(
-        Color.RED, Color.YELLOW, Color.GREEN, Color.CYAN, Color.WHITE, Color.BLACK
-    )
-    private var colorIndex = 0
+    private var currentColor = Color.parseColor("#FF3B30")
+    private var currentWidth = 12f
 
     private val paint = Paint().apply {
         isAntiAlias = true
         style = Paint.Style.STROKE
-        strokeWidth = 12f
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
-        color = colors[colorIndex]
     }
 
     init {
         setBackgroundColor(Color.TRANSPARENT)
     }
 
-    fun nextColor() {
-        colorIndex = (colorIndex + 1) % colors.size
+    fun setColor(color: Int) {
+        currentColor = color
     }
+
+    fun setStrokeWidth(width: Float) {
+        currentWidth = width
+    }
+
+    fun getColor(): Int = currentColor
+
+    fun getStrokeWidth(): Float = currentWidth
 
     fun undo() {
         if (strokes.isNotEmpty()) {
@@ -50,11 +61,13 @@ class DrawingView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        for ((path, color) in strokes) {
-            paint.color = color
-            canvas.drawPath(path, paint)
+        for (stroke in strokes) {
+            paint.color = stroke.color
+            paint.strokeWidth = stroke.width
+            canvas.drawPath(stroke.path, paint)
         }
-        paint.color = colors[colorIndex]
+        paint.color = currentColor
+        paint.strokeWidth = currentWidth
         canvas.drawPath(currentPath, paint)
     }
 
@@ -68,7 +81,7 @@ class DrawingView(context: Context) : View(context) {
                 currentPath.lineTo(event.x, event.y)
             }
             MotionEvent.ACTION_UP -> {
-                strokes.add(Pair(currentPath, colors[colorIndex]))
+                strokes.add(Stroke(currentPath, currentColor, currentWidth))
                 currentPath = Path()
             }
         }

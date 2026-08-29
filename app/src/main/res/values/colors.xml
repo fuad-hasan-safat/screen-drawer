@@ -1,0 +1,9 @@
+<resources>
+    <color name="color_bg_dark">#14151C</color>
+    <color name="color_bg_card">#20222E</color>
+    <color name="color_accent">#6C5CE7</color>
+    <color name="color_accent_secondary">#00D2D3</color>
+    <color name="color_on_dark">#FFFFFF</color>
+    <color name="color_muted">#9AA0B4</color>
+    <color name="color_danger">#FF6B6B</color>
+</resources>

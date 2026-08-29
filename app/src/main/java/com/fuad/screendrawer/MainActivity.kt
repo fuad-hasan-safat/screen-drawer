@@ -3,21 +3,27 @@ package com.fuad.screendrawer
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.widget.Button
-import android.widget.LinearLayout
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.google.android.material.button.MaterialButton
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var statusDot: ImageView
+    private lateinit var statusText: TextView
+    private lateinit var btnStart: MaterialButton
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
 
         if (Build.VERSION.SDK_INT >= 33) {
             if (ContextCompat.checkSelfPermission(
@@ -30,63 +36,54 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val root = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(60, 120, 60, 60)
+        statusDot = findViewById(R.id.statusDot)
+        statusText = findViewById(R.id.statusText)
+        btnStart = findViewById(R.id.btnStart)
+        val btnGrant = findViewById<MaterialButton>(R.id.btnGrant)
+        val btnStop = findViewById<MaterialButton>(R.id.btnStop)
+
+        btnGrant.setOnClickListener {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            startActivity(intent)
         }
 
-        val info = TextView(this).apply {
-            text = "Screen Drawer\n\n" +
-                "1) Grant the overlay (draw over other apps) permission.\n" +
-                "2) Tap Start. A small floating toolbar appears.\n" +
-                "3) Draw anywhere on screen with your finger.\n" +
-                "4) Use the toolbar to change color, undo, clear, toggle " +
-                "draw/move mode, or exit."
-            textSize = 16f
-            setPadding(0, 0, 0, 48)
-        }
-
-        val grantButton = Button(this).apply {
-            text = "1. Grant overlay permission"
-            setOnClickListener {
-                if (!Settings.canDrawOverlays(this@MainActivity)) {
-                    val intent = Intent(
-                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                        Uri.parse("package:$packageName")
-                    )
-                    startActivity(intent)
-                }
-            }
-        }
-
-        val startButton = Button(this).apply {
-            text = "2. Start drawing overlay"
-            setOnClickListener {
-                if (Settings.canDrawOverlays(this@MainActivity)) {
-                    val serviceIntent = Intent(this@MainActivity, OverlayService::class.java)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        startForegroundService(serviceIntent)
-                    } else {
-                        startService(serviceIntent)
-                    }
-                    moveTaskToBack(true)
+        btnStart.setOnClickListener {
+            if (Settings.canDrawOverlays(this)) {
+                val serviceIntent = Intent(this, OverlayService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent)
                 } else {
-                    Settings.canDrawOverlays(this@MainActivity)
+                    startService(serviceIntent)
                 }
+                moveTaskToBack(true)
             }
         }
 
-        val stopButton = Button(this).apply {
-            text = "Stop overlay"
-            setOnClickListener {
-                stopService(Intent(this@MainActivity, OverlayService::class.java))
-            }
+        btnStop.setOnClickListener {
+            stopService(Intent(this, OverlayService::class.java))
         }
+    }
 
-        root.addView(info)
-        root.addView(grantButton)
-        root.addView(startButton)
-        root.addView(stopButton)
-        setContentView(root)
+    override fun onResume() {
+        super.onResume()
+        refreshPermissionStatus()
+    }
+
+    private fun refreshPermissionStatus() {
+        val granted = Settings.canDrawOverlays(this)
+
+        statusDot.setColorFilter(
+            if (granted) Color.parseColor("#34C759") else Color.parseColor("#FF9500")
+        )
+        statusText.text = if (granted)
+            "Overlay permission granted — you're ready to draw"
+        else
+            "Overlay permission needed before you can start"
+
+        btnStart.isEnabled = granted
+        btnStart.alpha = if (granted) 1f else 0.5f
     }
 }

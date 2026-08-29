@@ -1,7 +1,17 @@
 # Screen Drawer (personal-use Android app)
 
-A minimal Android app that lets you draw on top of your screen — over any other
-app — with a small floating toolbar (pen toggle, color, undo, clear, exit).
+An Android app that lets you draw on top of your screen — over any other
+app — with a modern floating toolbar and a full color picker.
+
+**What's in this version:**
+- Dark, modern Material 3 UI on the main screen with a live permission-status card
+- Redesigned floating toolbar: pill-shaped, draggable by its own handle (so it
+  never conflicts with tapping the buttons), custom minimalist icon set
+- Full HSV color wheel — tap the color swatch to pick **any** color, not just
+  a fixed list, plus a brightness slider, 12 quick-pick presets, and a brush
+  size slider, all in one popup panel
+- Per-stroke undo (color/width included), so undo stays correct even if you
+  change color or brush size mid-drawing
 
 ## Why there's no .apk file attached
 
@@ -41,12 +51,18 @@ it in the cloud for you — no local setup needed. This gets you the real
 4. Tap **"Grant overlay permission"** → allow "display over other apps".
 5. Tap **"Start drawing overlay"**. A small dark toolbar appears.
 6. Draw with your finger anywhere on screen.
-   - **Pen / Move** button toggles between drawing and letting touches pass
-     through to the app underneath.
-   - **Color** cycles through colors.
+   - The **pen icon** (leftmost button) toggles between drawing and letting
+     touches pass through to the app underneath — it turns into a move icon
+     and greys out when pass-through is on.
+   - The **colored circle** opens the style panel: drag on the wheel to pick
+     any color, use the brightness slider for lighter/darker shades, tap a
+     quick-pick swatch for instant common colors, or drag the brush-size
+     slider. Tap the X to close it.
    - **Undo** removes the last stroke, **Clear** wipes everything.
-   - **Exit** stops the overlay completely.
-   - Drag the toolbar by its background (between the buttons) to reposition it.
+   - The **X** on the far right stops the overlay completely.
+   - Drag the small **dotted handle** on the far left of the toolbar to move
+     it anywhere on screen — the other buttons stay tap-only, so dragging
+     never accidentally triggers them.
 
 This app is unsigned/debug-only and meant for installing on your own device,
 which is exactly what a debug APK is for — no Play Store account or signing

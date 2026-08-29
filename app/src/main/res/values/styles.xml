@@ -1,0 +1,11 @@
+<resources>
+    <style name="ToolbarIconButton">
+        <item name="android:layout_width">40dp</item>
+        <item name="android:layout_height">40dp</item>
+        <item name="android:layout_margin">2dp</item>
+        <item name="android:background">@drawable/bg_icon_button</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:scaleType">centerInside</item>
+        <item name="android:tint">@color/color_on_dark</item>
+    </style>
+</resources>
