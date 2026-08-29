@@ -13,9 +13,11 @@ app — with a modern floating toolbar and a full color picker.
 - A real pixel eraser — a dedicated toggle that punches transparent holes
   wherever you drag, not just a "clear everything" button. The brush-size
   slider controls eraser thickness too, whichever tool is active
-- Stylus-only mode (palm rejection) — a switch that makes the canvas ignore
-  finger touches entirely, so only an S-Pen/stylus tip draws and a resting
-  palm never leaves a mark
+- Stylus-only mode (palm rejection) as a dedicated icon toggle right on the
+  panel — active, only a stylus/S-Pen tip draws; off, both finger and pen draw
+- A glassy, gradient-and-glow visual style: active tools light up with a soft
+  accent glow, the panel has a gradient "glass" card with an accent stripe,
+  and the currently-picked preset color gets a highlighted ring
 - Per-stroke undo (color/width included), so undo stays correct even if you
   change color, brush size, or switch between pen and eraser mid-session
 
@@ -56,20 +58,22 @@ it in the cloud for you — no local setup needed. This gets you the real
 3. Install and open **Screen Drawer**.
 4. Tap **"Grant overlay permission"** → allow "display over other apps".
 5. Tap **"Start drawing overlay"**. A small dark toolbar appears.
-6. Draw with your finger anywhere on screen.
+6. Draw with your finger (or a stylus) anywhere on screen.
    - The **pen icon** (leftmost button) toggles between drawing and letting
-     touches pass through to the app underneath — it turns into a move icon
-     and greys out when pass-through is on.
+     touches pass through to the app underneath — it glows purple when
+     active and greys out when pass-through is on.
    - The **eraser icon** toggles a real eraser — drag over any part of your
-     drawing to erase just that part (not the whole thing). Tap it again to
-     go back to the pen.
-   - The **colored circle** opens the pen settings panel: drag on the wheel to
-     pick any color, use the brightness slider for lighter/darker shades, tap
-     a quick-pick swatch for instant common colors, or drag the brush-size
-     slider — it resizes the pen when drawing, or the eraser when erasing.
-     At the bottom, the **"Stylus only"** switch makes the canvas ignore
-     finger touches completely, so only your S-Pen/stylus tip draws — handy
-     if your palm rests on the screen while writing. Tap the X to close it.
+     drawing to erase just that part (not the whole thing). It glows purple
+     while active. Tap it again to go back to the pen.
+   - The **colored circle** opens the pen settings panel: drag on the wheel
+     to pick any color, use the brightness slider for lighter/darker shades,
+     tap a quick-pick swatch for instant common colors (the currently active
+     one gets a highlighted ring), or drag the brush-size slider — it
+     resizes the pen when drawing, or the eraser when erasing. At the
+     bottom, tap the **stylus icon** to turn on stylus-only mode — while it's
+     glowing, the canvas ignores finger touches completely and only your
+     S-Pen/stylus tip draws; tap it again to let both finger and pen draw.
+     Tap the X to close the panel.
    - **Undo** removes the last stroke (pen or eraser), **Clear** wipes everything.
    - The **X** on the far right stops the overlay completely.
    - Drag the small **dotted handle** on the far left of the toolbar to move

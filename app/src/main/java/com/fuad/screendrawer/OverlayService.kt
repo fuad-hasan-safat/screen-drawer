@@ -18,15 +18,14 @@ import android.view.WindowManager
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.SeekBar
-import android.widget.Switch
 
 /**
  * Hosts three overlay windows on top of whatever app the user is in:
  *  1. [drawingView]  - full-screen transparent canvas that captures the pen/eraser strokes
  *  2. [toolbarView]  - small draggable pill: pen/move toggle, eraser, color, undo, clear, exit
  *  3. [styleView]    - hidden by default; opens when the color swatch is tapped,
- *                      holds the HSV color wheel, brightness slider, quick presets
- *                      and a brush/eraser size slider (whichever tool is active)
+ *                      holds the HSV color wheel, brightness slider, quick presets,
+ *                      a brush/eraser size slider, and the stylus-only toggle
  */
 class OverlayService : Service() {
 
@@ -46,6 +45,8 @@ class OverlayService : Service() {
     private lateinit var colorWheel: ColorWheelView
     private lateinit var brightnessSeek: SeekBar
     private lateinit var strokeSeek: SeekBar
+    private lateinit var btnStylusOnly: ImageButton
+    private val presetViews = mutableListOf<ColorSwatchView>()
     private var stylePanelVisible = false
 
     private var drawModeOn = true
@@ -77,6 +78,14 @@ class OverlayService : Service() {
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
         else
             @Suppress("DEPRECATION") WindowManager.LayoutParams.TYPE_PHONE
+
+    /** Shared visual language for every toggle-style icon button: tint + glow background. */
+    private fun setToggleActive(button: ImageButton, active: Boolean) {
+        button.setColorFilter(if (active) accentColor else mutedColor)
+        button.setBackgroundResource(
+            if (active) R.drawable.bg_icon_button_active else R.drawable.bg_icon_button
+        )
+    }
 
     // ---------------------------------------------------------------------
     // Layer 1: the drawing canvas
@@ -185,9 +194,8 @@ class OverlayService : Service() {
         windowManager.updateViewLayout(drawingView, drawParams)
 
         btnToggleMode.setImageResource(if (drawModeOn) R.drawable.ic_pen else R.drawable.ic_pan)
-        btnToggleMode.setColorFilter(if (drawModeOn) accentColor else mutedColor)
-
-        btnEraser.setColorFilter(if (drawingView.isEraserMode()) accentColor else mutedColor)
+        setToggleActive(btnToggleMode, drawModeOn)
+        setToggleActive(btnEraser, drawingView.isEraserMode())
 
         // Tool selectors only matter while the overlay is actively capturing
         // touches, so dim them during pass-through to signal that.
@@ -197,7 +205,7 @@ class OverlayService : Service() {
     }
 
     // ---------------------------------------------------------------------
-    // Layer 3: the style panel (color wheel + brightness + presets + brush/eraser size)
+    // Layer 3: the style panel (color wheel + brightness + presets + brush/eraser size + stylus toggle)
     // ---------------------------------------------------------------------
 
     private fun setupStylePanel() {
@@ -217,20 +225,16 @@ class OverlayService : Service() {
         colorWheel = styleView.findViewById(R.id.colorWheel)
         brightnessSeek = styleView.findViewById(R.id.brightnessSeek)
         strokeSeek = styleView.findViewById(R.id.strokeSeek)
+        btnStylusOnly = styleView.findViewById(R.id.btnStylusOnly)
         val presetRow = styleView.findViewById<LinearLayout>(R.id.presetRow)
         val btnPanelClose = styleView.findViewById<ImageButton>(R.id.btnPanelClose)
-        val switchStylusOnly = styleView.findViewById<Switch>(R.id.switchStylusOnly)
-
-        switchStylusOnly.isChecked = drawingView.isStylusOnlyMode()
-        switchStylusOnly.setOnCheckedChangeListener { _, isChecked ->
-            drawingView.setStylusOnlyMode(isChecked)
-        }
 
         colorWheel.setColorExternally(drawingView.getColor())
 
         colorWheel.onColorChanged = { color ->
             drawingView.setColor(color)
             colorSwatch.setColorValue(color)
+            refreshPresetSelection(color)
         }
 
         brightnessSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
@@ -241,6 +245,7 @@ class OverlayService : Service() {
                     val color = colorWheel.currentColor()
                     drawingView.setColor(color)
                     colorSwatch.setColorValue(color)
+                    refreshPresetSelection(color)
                 }
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
@@ -278,11 +283,28 @@ class OverlayService : Service() {
                 colorSwatch.setColorValue(c)
                 colorWheel.setColorExternally(c)
                 brightnessSeek.progress = (colorWheel.value * 100).toInt()
+                refreshPresetSelection(c)
             }
             presetRow.addView(swatch)
+            presetViews.add(swatch)
+        }
+        refreshPresetSelection(drawingView.getColor())
+
+        setToggleActive(btnStylusOnly, drawingView.isStylusOnlyMode())
+        btnStylusOnly.setOnClickListener {
+            val turningOn = !drawingView.isStylusOnlyMode()
+            drawingView.setStylusOnlyMode(turningOn)
+            setToggleActive(btnStylusOnly, turningOn)
         }
 
         btnPanelClose.setOnClickListener { toggleStylePanel() }
+    }
+
+    /** Lights up whichever preset swatch (if any) exactly matches the given color. */
+    private fun refreshPresetSelection(color: Int) {
+        for (v in presetViews) {
+            v.setPicked(v.getColorValue() == color)
+        }
     }
 
     private fun toggleStylePanel() {
