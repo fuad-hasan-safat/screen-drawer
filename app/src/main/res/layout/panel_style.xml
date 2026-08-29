@@ -17,7 +17,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Pen style"
+            android:text="Pen settings"
             android:textColor="@color/color_on_dark"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -90,5 +90,32 @@
         android:max="40"
         android:min="4"
         android:progress="12" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:background="#33FFFFFF" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Stylus only (ignore finger touch)"
+            android:textColor="@color/color_on_dark"
+            android:textSize="13sp" />
+
+        <Switch
+            android:id="@+id/switchStylusOnly"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
 
 </LinearLayout>

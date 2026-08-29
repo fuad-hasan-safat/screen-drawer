@@ -10,8 +10,14 @@ app — with a modern floating toolbar and a full color picker.
 - Full HSV color wheel — tap the color swatch to pick **any** color, not just
   a fixed list, plus a brightness slider, 12 quick-pick presets, and a brush
   size slider, all in one popup panel
+- A real pixel eraser — a dedicated toggle that punches transparent holes
+  wherever you drag, not just a "clear everything" button. The brush-size
+  slider controls eraser thickness too, whichever tool is active
+- Stylus-only mode (palm rejection) — a switch that makes the canvas ignore
+  finger touches entirely, so only an S-Pen/stylus tip draws and a resting
+  palm never leaves a mark
 - Per-stroke undo (color/width included), so undo stays correct even if you
-  change color or brush size mid-drawing
+  change color, brush size, or switch between pen and eraser mid-session
 
 ## Why there's no .apk file attached
 
@@ -54,11 +60,17 @@ it in the cloud for you — no local setup needed. This gets you the real
    - The **pen icon** (leftmost button) toggles between drawing and letting
      touches pass through to the app underneath — it turns into a move icon
      and greys out when pass-through is on.
-   - The **colored circle** opens the style panel: drag on the wheel to pick
-     any color, use the brightness slider for lighter/darker shades, tap a
-     quick-pick swatch for instant common colors, or drag the brush-size
-     slider. Tap the X to close it.
-   - **Undo** removes the last stroke, **Clear** wipes everything.
+   - The **eraser icon** toggles a real eraser — drag over any part of your
+     drawing to erase just that part (not the whole thing). Tap it again to
+     go back to the pen.
+   - The **colored circle** opens the pen settings panel: drag on the wheel to
+     pick any color, use the brightness slider for lighter/darker shades, tap
+     a quick-pick swatch for instant common colors, or drag the brush-size
+     slider — it resizes the pen when drawing, or the eraser when erasing.
+     At the bottom, the **"Stylus only"** switch makes the canvas ignore
+     finger touches completely, so only your S-Pen/stylus tip draws — handy
+     if your palm rests on the screen while writing. Tap the X to close it.
+   - **Undo** removes the last stroke (pen or eraser), **Clear** wipes everything.
    - The **X** on the far right stops the overlay completely.
    - Drag the small **dotted handle** on the far left of the toolbar to move
      it anywhere on screen — the other buttons stay tap-only, so dragging
