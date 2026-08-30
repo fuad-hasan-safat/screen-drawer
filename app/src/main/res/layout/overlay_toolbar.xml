@@ -49,6 +49,12 @@
         android:src="@drawable/ic_undo" />
 
     <ImageButton
+        android:id="@+id/btnRedo"
+        style="@style/ToolbarIconButton"
+        android:contentDescription="Redo"
+        android:src="@drawable/ic_redo" />
+
+    <ImageButton
         android:id="@+id/btnClear"
         style="@style/ToolbarIconButton"
         android:contentDescription="Clear"

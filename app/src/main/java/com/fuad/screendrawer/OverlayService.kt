@@ -1,5 +1,8 @@
 package com.fuad.screendrawer
 
+import android.animation.ObjectAnimator
+import android.animation.PropertyValuesHolder
+import android.animation.ValueAnimator
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -15,6 +18,7 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.animation.AccelerateDecelerateInterpolator
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.SeekBar
@@ -50,6 +54,7 @@ class OverlayService : Service() {
     private var stylePanelVisible = false
 
     private var drawModeOn = true
+    private var penPulseAnimator: ObjectAnimator? = null
 
     private val accentColor = Color.parseColor("#6C5CE7")
     private val mutedColor = Color.parseColor("#9AA0B4")
@@ -85,6 +90,31 @@ class OverlayService : Service() {
         button.setBackgroundResource(
             if (active) R.drawable.bg_icon_button_active else R.drawable.bg_icon_button
         )
+    }
+
+    /**
+     * A tiny, cheap breathing-scale pulse (property animation only, no
+     * redraw/relayout work) that draws attention to the pen icon while draw
+     * mode is live - stopped immediately once draw mode turns off.
+     */
+    private fun startPenPulse(view: View) {
+        if (penPulseAnimator?.isRunning == true) return
+        val scaleX = PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 1.12f)
+        val scaleY = PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 1.12f)
+        penPulseAnimator = ObjectAnimator.ofPropertyValuesHolder(view, scaleX, scaleY).apply {
+            duration = 700
+            repeatMode = ValueAnimator.REVERSE
+            repeatCount = ValueAnimator.INFINITE
+            interpolator = AccelerateDecelerateInterpolator()
+            start()
+        }
+    }
+
+    private fun stopPenPulse(view: View) {
+        penPulseAnimator?.cancel()
+        penPulseAnimator = null
+        view.scaleX = 1f
+        view.scaleY = 1f
     }
 
     // ---------------------------------------------------------------------
@@ -129,6 +159,7 @@ class OverlayService : Service() {
         btnEraser = toolbarView.findViewById(R.id.btnEraser)
         colorSwatch = toolbarView.findViewById(R.id.colorSwatch)
         val btnUndo = toolbarView.findViewById<ImageButton>(R.id.btnUndo)
+        val btnRedo = toolbarView.findViewById<ImageButton>(R.id.btnRedo)
         val btnClear = toolbarView.findViewById<ImageButton>(R.id.btnClear)
         val btnExit = toolbarView.findViewById<ImageButton>(R.id.btnExit)
 
@@ -150,8 +181,15 @@ class OverlayService : Service() {
         }
         colorSwatch.setOnClickListener { toggleStylePanel() }
         btnUndo.setOnClickListener { drawingView.undo() }
+        btnRedo.setOnClickListener { drawingView.redo() }
         btnClear.setOnClickListener { drawingView.clearAll() }
         btnExit.setOnClickListener { stopSelf() }
+
+        drawingView.onHistoryChanged = {
+            btnUndo.alpha = if (drawingView.canUndo()) 1f else 0.4f
+            btnRedo.alpha = if (drawingView.canRedo()) 1f else 0.4f
+        }
+        drawingView.onHistoryChanged?.invoke()
 
         // Only the drag handle moves the toolbar, so the icon buttons stay
         // perfectly clickable (no gesture conflict between drag and tap).
@@ -196,6 +234,12 @@ class OverlayService : Service() {
         btnToggleMode.setImageResource(if (drawModeOn) R.drawable.ic_pen else R.drawable.ic_pan)
         setToggleActive(btnToggleMode, drawModeOn)
         setToggleActive(btnEraser, drawingView.isEraserMode())
+
+        if (drawModeOn) {
+            startPenPulse(btnToggleMode)
+        } else {
+            stopPenPulse(btnToggleMode)
+        }
 
         // Tool selectors only matter while the overlay is actively capturing
         // touches, so dim them during pass-through to signal that.
@@ -355,6 +399,7 @@ class OverlayService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        penPulseAnimator?.cancel()
         windowManager.removeView(drawingView)
         windowManager.removeView(toolbarView)
         windowManager.removeView(styleView)

@@ -21,10 +21,10 @@ import android.view.View
  * like a real eraser rather than just deleting a whole shape.
  *
  * A lightweight history of strokes (path + color + width + eraser flag) is
- * kept alongside the bitmap purely so Undo can rebuild the bitmap from
- * scratch by replaying every remaining stroke in order - erasing isn't
- * simply "invertible" once it has punched through earlier ink, so a full
- * replay is the correct way to undo it.
+ * kept alongside the bitmap so Undo/Redo can rebuild the bitmap correctly -
+ * erasing isn't simply "invertible" once it has punched through earlier ink,
+ * so undo replays every remaining stroke in order from scratch, while redo
+ * can cheaply re-apply the single stroke it just restored.
  */
 class DrawingView(context: Context) : View(context) {
 
@@ -36,6 +36,7 @@ class DrawingView(context: Context) : View(context) {
     )
 
     private val strokes = mutableListOf<Stroke>()
+    private val redoStack = mutableListOf<Stroke>()
     private var currentPath = Path()
     private var lastX = 0f
     private var lastY = 0f
@@ -56,6 +57,9 @@ class DrawingView(context: Context) : View(context) {
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
     }
+
+    /** Notified whenever a stroke is added, undone, redone, or cleared. */
+    var onHistoryChanged: (() -> Unit)? = null
 
     init {
         setBackgroundColor(Color.TRANSPARENT)
@@ -88,23 +92,48 @@ class DrawingView(context: Context) : View(context) {
 
     // --- Palm rejection --------------------------------------------------
 
-    /** When on, only a stylus tip draws - finger touches are ignored entirely. */
     fun setStylusOnlyMode(on: Boolean) { stylusOnlyMode = on }
     fun isStylusOnlyMode(): Boolean = stylusOnlyMode
 
-    // --- History ---------------------------------------------------------
+    // --- History (undo / redo) --------------------------------------------
+
+    fun canUndo(): Boolean = strokes.isNotEmpty()
+    fun canRedo(): Boolean = redoStack.isNotEmpty()
 
     fun undo() {
         if (strokes.isEmpty()) return
-        strokes.removeAt(strokes.size - 1)
+        val removed = strokes.removeAt(strokes.size - 1)
+        redoStack.add(removed)
         redrawFromHistory()
+        onHistoryChanged?.invoke()
+    }
+
+    fun redo() {
+        if (redoStack.isEmpty()) return
+        val stroke = redoStack.removeAt(redoStack.size - 1)
+        strokes.add(stroke)
+        // The bitmap already reflects everything up to just before this
+        // stroke, so redo only needs to re-apply this one stroke - no need
+        // for a full history replay.
+        val canvas = bitmapCanvas
+        if (canvas != null) {
+            paint.xfermode = if (stroke.isEraser) clearXfermode else null
+            paint.color = stroke.color
+            paint.strokeWidth = stroke.width
+            canvas.drawPath(stroke.path, paint)
+            paint.xfermode = null
+        }
+        invalidate()
+        onHistoryChanged?.invoke()
     }
 
     fun clearAll() {
         strokes.clear()
+        redoStack.clear()
         currentPath = Path()
         bitmap?.eraseColor(Color.TRANSPARENT)
         invalidate()
+        onHistoryChanged?.invoke()
     }
 
     private fun redrawFromHistory() {
@@ -161,7 +190,9 @@ class DrawingView(context: Context) : View(context) {
                 val color = if (eraserModeOn) Color.TRANSPARENT else currentColor
                 val width = if (eraserModeOn) eraserWidth else currentWidth
                 strokes.add(Stroke(currentPath, color, width, eraserModeOn))
+                redoStack.clear() // a fresh stroke invalidates any pending redo
                 currentPath = Path()
+                onHistoryChanged?.invoke()
             }
         }
         invalidate()

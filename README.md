@@ -6,7 +6,7 @@ app — with a modern floating toolbar and a full color picker.
 **What's in this version:**
 - Dark, modern Material 3 UI on the main screen with a live permission-status card
 - Redesigned floating toolbar: pill-shaped, draggable by its own handle (so it
-  never conflicts with tapping the buttons), custom minimalist icon set
+  never conflicts with tapping the buttons), a clearer literal pen/eraser icon set
 - Full HSV color wheel — tap the color swatch to pick **any** color, not just
   a fixed list, plus a brightness slider, 12 quick-pick presets, and a brush
   size slider, all in one popup panel
@@ -16,10 +16,11 @@ app — with a modern floating toolbar and a full color picker.
 - Stylus-only mode (palm rejection) as a dedicated icon toggle right on the
   panel — active, only a stylus/S-Pen tip draws; off, both finger and pen draw
 - A glassy, gradient-and-glow visual style: active tools light up with a soft
-  accent glow, the panel has a gradient "glass" card with an accent stripe,
-  and the currently-picked preset color gets a highlighted ring
-- Per-stroke undo (color/width included), so undo stays correct even if you
-  change color, brush size, or switch between pen and eraser mid-session
+  accent glow (plus a subtle breathing pulse on the pen icon while draw mode
+  is live), the panel has a gradient "glass" card with an accent stripe, and
+  the currently-picked preset color gets a highlighted ring
+- Undo **and Redo**, both per-stroke (color/width included) and correctly
+  invalidated the moment you draw something new after undoing
 
 ## Why there's no .apk file attached
 
@@ -60,8 +61,8 @@ it in the cloud for you — no local setup needed. This gets you the real
 5. Tap **"Start drawing overlay"**. A small dark toolbar appears.
 6. Draw with your finger (or a stylus) anywhere on screen.
    - The **pen icon** (leftmost button) toggles between drawing and letting
-     touches pass through to the app underneath — it glows purple when
-     active and greys out when pass-through is on.
+     touches pass through to the app underneath — it glows purple and gently
+     pulses while active, and greys out (no pulse) when pass-through is on.
    - The **eraser icon** toggles a real eraser — drag over any part of your
      drawing to erase just that part (not the whole thing). It glows purple
      while active. Tap it again to go back to the pen.
@@ -74,7 +75,10 @@ it in the cloud for you — no local setup needed. This gets you the real
      glowing, the canvas ignores finger touches completely and only your
      S-Pen/stylus tip draws; tap it again to let both finger and pen draw.
      Tap the X to close the panel.
-   - **Undo** removes the last stroke (pen or eraser), **Clear** wipes everything.
+   - **Undo** removes the last stroke (pen or eraser); **Redo** brings it
+     back. Both grey out automatically when there's nothing left to undo/redo,
+     and drawing something new clears the redo history, same as any editor.
+   - **Clear** wipes everything.
    - The **X** on the far right stops the overlay completely.
    - Drag the small **dotted handle** on the far left of the toolbar to move
      it anywhere on screen — the other buttons stay tap-only, so dragging
