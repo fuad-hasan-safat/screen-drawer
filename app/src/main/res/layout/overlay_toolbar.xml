@@ -24,10 +24,22 @@
         android:background="#33FFFFFF" />
 
     <ImageButton
-        android:id="@+id/btnToggleMode"
+        android:id="@+id/btnToolPen"
         style="@style/ToolbarIconButton"
-        android:contentDescription="Toggle draw mode"
+        android:contentDescription="Pen"
         android:src="@drawable/ic_pen" />
+
+    <ImageButton
+        android:id="@+id/btnToolMarker"
+        style="@style/ToolbarIconButton"
+        android:contentDescription="Marker"
+        android:src="@drawable/ic_marker" />
+
+    <ImageButton
+        android:id="@+id/btnToolEraser"
+        style="@style/ToolbarIconButton"
+        android:contentDescription="Eraser"
+        android:src="@drawable/ic_eraser" />
 
     <com.fuad.screendrawer.ColorSwatchView
         android:id="@+id/colorSwatch"

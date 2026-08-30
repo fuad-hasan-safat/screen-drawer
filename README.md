@@ -7,10 +7,11 @@ app — with a modern floating toolbar and a full color picker.
 - Dark, modern Material 3 UI on the main screen with a live permission-status card
 - Redesigned floating toolbar: pill-shaped, draggable by its own handle (so it
   never conflicts with tapping the buttons), a clearer literal pen/eraser icon set
-- Three tools with dedicated **Pen / Marker / Eraser** buttons right in the
-  settings panel (tap the color swatch to open it) — no more cycling through
-  a single button. Marker is a translucent highlighter with adjustable color
-  and opacity
+- Three tools with dedicated **Pen / Marker / Eraser** buttons right on the
+  floating toolbar — tap one to draw with it; tap the already-active one
+  again to pause drawing and interact with the app underneath (no separate
+  mode-toggle button needed). Marker is a translucent highlighter with
+  adjustable color and opacity
 - Full HSV color wheel — tap the color swatch to pick **any** color for the
   pen or the marker, plus a brightness slider, 12 quick-pick presets, and a
   brush size slider, all in one popup panel that adapts to whichever tool is
@@ -65,17 +66,17 @@ it in the cloud for you — no local setup needed. This gets you the real
 4. Tap **"Grant overlay permission"** → allow "display over other apps".
 5. Tap **"Start drawing overlay"**. A small dark toolbar appears.
 6. Draw with your finger (or a stylus) anywhere on screen.
-   - The **pen icon** (leftmost button) toggles between drawing and letting
-     touches pass through to the app underneath — it glows purple and gently
-     pulses while active, and greys out (no pulse) when pass-through is on.
-   - The **colored circle** opens the settings panel. At the top are three
-     dedicated buttons — **Pen**, **Marker**, **Eraser** — tap whichever you
-     want; the selected one glows purple. Marker draws a translucent
-     highlighter stroke instead of solid ink; the Eraser erases just the
-     part of the drawing you drag over, not the whole thing.
-   - Below that, for **Pen** and **Marker**: drag on the color wheel to pick
-     any color, use the brightness slider for lighter/darker shades, or tap
-     a quick-pick swatch (the active one gets a highlighted ring). The
+   - The **Pen, Marker, and Eraser icons** are dedicated buttons right on the
+     toolbar — tap one to start drawing with it immediately (it glows purple
+     and gently pulses while active). Tap the **same** tool again to pause
+     drawing and let touches pass through to the app underneath; tap any
+     tool again to resume. Marker draws a translucent highlighter stroke
+     instead of solid ink; the Eraser erases just the part of the drawing
+     you drag over, not the whole thing.
+   - The **colored circle** opens the settings panel for whichever tool is
+     active. For **Pen** and **Marker**: drag on the color wheel to pick any
+     color, use the brightness slider for lighter/darker shades, or tap a
+     quick-pick swatch (the active one gets a highlighted ring). The
      **Marker** panel also has an **Opacity** slider — lower it for a
      lighter, more transparent highlight. **Brush size** resizes whichever
      tool is selected; for the **Eraser**, the color/opacity controls hide

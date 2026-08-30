@@ -25,8 +25,11 @@ import android.widget.SeekBar
 
 /**
  * Hosts three overlay windows on top of whatever app the user is in:
- *  1. [drawingView]  - full-screen transparent canvas that captures the pen/eraser strokes
- *  2. [toolbarView]  - small draggable pill: pen/move toggle, eraser, color, undo, clear, exit
+ *  1. [drawingView]  - full-screen transparent canvas that captures the strokes
+ *  2. [toolbarView]  - small draggable pill: Pen/Marker/Eraser, color, undo, redo, clear, exit.
+ *                      Tapping a tool selects it and starts capturing touches; tapping the
+ *                      already-active tool again pauses drawing so touches pass through to
+ *                      the app underneath.
  *  3. [styleView]    - hidden by default; opens when the color swatch is tapped,
  *                      holds the HSV color wheel, brightness slider, quick presets,
  *                      a brush/eraser size slider, and the stylus-only toggle
@@ -41,14 +44,13 @@ class OverlayService : Service() {
     private lateinit var toolbarView: View
     private lateinit var toolbarParams: WindowManager.LayoutParams
     private lateinit var colorSwatch: ColorSwatchView
-    private lateinit var btnToggleMode: ImageButton
+    private lateinit var btnToolPen: ImageButton
+    private lateinit var btnToolMarker: ImageButton
+    private lateinit var btnToolEraser: ImageButton
 
     private lateinit var styleView: View
     private lateinit var styleParams: WindowManager.LayoutParams
     private lateinit var panelTitle: android.widget.TextView
-    private lateinit var btnToolPen: ImageButton
-    private lateinit var btnToolMarker: ImageButton
-    private lateinit var btnToolEraser: ImageButton
     private lateinit var colorGroup: LinearLayout
     private lateinit var opacityGroup: LinearLayout
     private lateinit var colorWheel: ColorWheelView
@@ -98,21 +100,40 @@ class OverlayService : Service() {
         )
     }
 
-    /** Highlights exactly one of the three panel tool buttons - whichever is active. */
+    /**
+     * Reflects current state on the three tool buttons: the active tool
+     * glows (and gently pulses, if capturing is on); the other two stay
+     * neutral. While paused (touches passing through), all three dim.
+     */
     private fun updateToolSelectorUi() {
         val tool = drawingView.getTool()
-        setToggleActive(btnToolPen, tool == DrawingView.Tool.PEN)
-        setToggleActive(btnToolMarker, tool == DrawingView.Tool.MARKER)
-        setToggleActive(btnToolEraser, tool == DrawingView.Tool.ERASER)
+        setToggleActive(btnToolPen, drawModeOn && tool == DrawingView.Tool.PEN)
+        setToggleActive(btnToolMarker, drawModeOn && tool == DrawingView.Tool.MARKER)
+        setToggleActive(btnToolEraser, drawModeOn && tool == DrawingView.Tool.ERASER)
+
+        val alpha = if (drawModeOn) 1f else 0.45f
+        btnToolPen.alpha = alpha
+        btnToolMarker.alpha = alpha
+        btnToolEraser.alpha = alpha
+
+        stopAllPulses()
+        if (drawModeOn) {
+            val activeButton = when (tool) {
+                DrawingView.Tool.PEN -> btnToolPen
+                DrawingView.Tool.MARKER -> btnToolMarker
+                DrawingView.Tool.ERASER -> btnToolEraser
+            }
+            startPenPulse(activeButton)
+        }
     }
 
     /**
      * A tiny, cheap breathing-scale pulse (property animation only, no
-     * redraw/relayout work) that draws attention to the pen icon while draw
-     * mode is live - stopped immediately once draw mode turns off.
+     * redraw/relayout work) that draws attention to whichever tool button is
+     * currently live - stopped immediately once drawing is paused.
      */
     private fun startPenPulse(view: View) {
-        if (penPulseAnimator?.isRunning == true) return
+        penPulseAnimator?.cancel()
         val scaleX = PropertyValuesHolder.ofFloat(View.SCALE_X, 1f, 1.12f)
         val scaleY = PropertyValuesHolder.ofFloat(View.SCALE_Y, 1f, 1.12f)
         penPulseAnimator = ObjectAnimator.ofPropertyValuesHolder(view, scaleX, scaleY).apply {
@@ -124,11 +145,13 @@ class OverlayService : Service() {
         }
     }
 
-    private fun stopPenPulse(view: View) {
+    private fun stopAllPulses() {
         penPulseAnimator?.cancel()
         penPulseAnimator = null
-        view.scaleX = 1f
-        view.scaleY = 1f
+        for (b in listOf(btnToolPen, btnToolMarker, btnToolEraser)) {
+            b.scaleX = 1f
+            b.scaleY = 1f
+        }
     }
 
     // ---------------------------------------------------------------------
@@ -169,7 +192,9 @@ class OverlayService : Service() {
         windowManager.addView(toolbarView, toolbarParams)
 
         val dragHandle = toolbarView.findViewById<View>(R.id.dragHandle)
-        btnToggleMode = toolbarView.findViewById(R.id.btnToggleMode)
+        btnToolPen = toolbarView.findViewById(R.id.btnToolPen)
+        btnToolMarker = toolbarView.findViewById(R.id.btnToolMarker)
+        btnToolEraser = toolbarView.findViewById(R.id.btnToolEraser)
         colorSwatch = toolbarView.findViewById(R.id.colorSwatch)
         val btnUndo = toolbarView.findViewById<ImageButton>(R.id.btnUndo)
         val btnRedo = toolbarView.findViewById<ImageButton>(R.id.btnRedo)
@@ -178,10 +203,9 @@ class OverlayService : Service() {
 
         colorSwatch.setColorValue(drawingView.getActiveColor())
 
-        btnToggleMode.setOnClickListener {
-            drawModeOn = !drawModeOn
-            applyDrawMode()
-        }
+        btnToolPen.setOnClickListener { onToolButtonTapped(DrawingView.Tool.PEN) }
+        btnToolMarker.setOnClickListener { onToolButtonTapped(DrawingView.Tool.MARKER) }
+        btnToolEraser.setOnClickListener { onToolButtonTapped(DrawingView.Tool.ERASER) }
         colorSwatch.setOnClickListener { toggleStylePanel() }
         btnUndo.setOnClickListener { drawingView.undo() }
         btnRedo.setOnClickListener { drawingView.redo() }
@@ -225,6 +249,25 @@ class OverlayService : Service() {
         applyDrawMode()
     }
 
+    /**
+     * Tapping a tool selects it and (re)starts capturing touches. Tapping
+     * the tool that's already active pauses drawing instead, so the same
+     * button doubles as the capture/pass-through switch.
+     */
+    private fun onToolButtonTapped(tool: DrawingView.Tool) {
+        drawModeOn = if (drawModeOn && drawingView.getTool() == tool) {
+            false
+        } else {
+            drawingView.setTool(tool)
+            true
+        }
+        colorSwatch.setColorValue(drawingView.getActiveColor())
+        applyDrawMode()
+        if (stylePanelVisible) {
+            refreshPanelForActiveTool()
+        }
+    }
+
     private fun applyDrawMode() {
         drawParams.flags = if (drawModeOn) {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
@@ -234,14 +277,7 @@ class OverlayService : Service() {
         }
         windowManager.updateViewLayout(drawingView, drawParams)
 
-        btnToggleMode.setImageResource(if (drawModeOn) R.drawable.ic_pen else R.drawable.ic_pan)
-        setToggleActive(btnToggleMode, drawModeOn)
-
-        if (drawModeOn) {
-            startPenPulse(btnToggleMode)
-        } else {
-            stopPenPulse(btnToggleMode)
-        }
+        updateToolSelectorUi()
 
         // The color swatch only matters while the overlay is actively
         // capturing touches, so dim it during pass-through to signal that.
@@ -275,9 +311,6 @@ class OverlayService : Service() {
         windowManager.addView(styleView, styleParams)
 
         panelTitle = styleView.findViewById(R.id.panelTitle)
-        btnToolPen = styleView.findViewById(R.id.btnToolPen)
-        btnToolMarker = styleView.findViewById(R.id.btnToolMarker)
-        btnToolEraser = styleView.findViewById(R.id.btnToolEraser)
         colorGroup = styleView.findViewById(R.id.colorGroup)
         opacityGroup = styleView.findViewById(R.id.opacityGroup)
         colorWheel = styleView.findViewById(R.id.colorWheel)
@@ -364,23 +397,6 @@ class OverlayService : Service() {
             setToggleActive(btnStylusOnly, turningOn)
         }
 
-        updateToolSelectorUi()
-        val onToolPicked: (DrawingView.Tool) -> Unit = { tool ->
-            drawingView.setTool(tool)
-            if (!drawModeOn) {
-                // Picking a tool from the panel means "I want to use this
-                // now", so make sure the overlay is actively capturing touches.
-                drawModeOn = true
-                applyDrawMode()
-            }
-            colorSwatch.setColorValue(drawingView.getActiveColor())
-            updateToolSelectorUi()
-            refreshPanelForActiveTool()
-        }
-        btnToolPen.setOnClickListener { onToolPicked(DrawingView.Tool.PEN) }
-        btnToolMarker.setOnClickListener { onToolPicked(DrawingView.Tool.MARKER) }
-        btnToolEraser.setOnClickListener { onToolPicked(DrawingView.Tool.ERASER) }
-
         btnPanelClose.setOnClickListener { toggleStylePanel() }
     }
 
@@ -394,7 +410,6 @@ class OverlayService : Service() {
     /** Shows/hides and re-syncs panel sections to match whichever tool is active. */
     private fun refreshPanelForActiveTool() {
         val tool = drawingView.getTool()
-        updateToolSelectorUi()
 
         panelTitle.text = when (tool) {
             DrawingView.Tool.PEN -> "Pen settings"
