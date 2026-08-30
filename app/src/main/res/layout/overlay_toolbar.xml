@@ -30,9 +30,9 @@
         android:src="@drawable/ic_pen" />
 
     <ImageButton
-        android:id="@+id/btnEraser"
+        android:id="@+id/btnTool"
         style="@style/ToolbarIconButton"
-        android:contentDescription="Eraser"
+        android:contentDescription="Change tool"
         android:src="@drawable/ic_eraser" />
 
     <com.fuad.screendrawer.ColorSwatchView

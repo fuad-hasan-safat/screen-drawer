@@ -7,12 +7,16 @@ app — with a modern floating toolbar and a full color picker.
 - Dark, modern Material 3 UI on the main screen with a live permission-status card
 - Redesigned floating toolbar: pill-shaped, draggable by its own handle (so it
   never conflicts with tapping the buttons), a clearer literal pen/eraser icon set
-- Full HSV color wheel — tap the color swatch to pick **any** color, not just
-  a fixed list, plus a brightness slider, 12 quick-pick presets, and a brush
-  size slider, all in one popup panel
-- A real pixel eraser — a dedicated toggle that punches transparent holes
-  wherever you drag, not just a "clear everything" button. The brush-size
-  slider controls eraser thickness too, whichever tool is active
+- Three tools in one cycle button: **Pen**, **Marker** (translucent
+  highlighter with adjustable color and opacity), and **Eraser** — tap to
+  cycle, the icon and glow show which one is active
+- Full HSV color wheel — tap the color swatch to pick **any** color for the
+  pen or the marker, plus a brightness slider, 12 quick-pick presets, and a
+  brush size slider, all in one popup panel that adapts to whichever tool is
+  selected (color and opacity controls hide automatically for the eraser,
+  since neither applies to it)
+- A real pixel eraser — a dedicated tool that punches transparent holes
+  wherever you drag, not just a "clear everything" button
 - Stylus-only mode (palm rejection) as a dedicated icon toggle right on the
   panel — active, only a stylus/S-Pen tip draws; off, both finger and pen draw
 - A glassy, gradient-and-glow visual style: active tools light up with a soft
@@ -63,21 +67,26 @@ it in the cloud for you — no local setup needed. This gets you the real
    - The **pen icon** (leftmost button) toggles between drawing and letting
      touches pass through to the app underneath — it glows purple and gently
      pulses while active, and greys out (no pulse) when pass-through is on.
-   - The **eraser icon** toggles a real eraser — drag over any part of your
-     drawing to erase just that part (not the whole thing). It glows purple
-     while active. Tap it again to go back to the pen.
-   - The **colored circle** opens the pen settings panel: drag on the wheel
-     to pick any color, use the brightness slider for lighter/darker shades,
-     tap a quick-pick swatch for instant common colors (the currently active
-     one gets a highlighted ring), or drag the brush-size slider — it
-     resizes the pen when drawing, or the eraser when erasing. At the
-     bottom, tap the **stylus icon** to turn on stylus-only mode — while it's
-     glowing, the canvas ignores finger touches completely and only your
-     S-Pen/stylus tip draws; tap it again to let both finger and pen draw.
-     Tap the X to close the panel.
-   - **Undo** removes the last stroke (pen or eraser); **Redo** brings it
-     back. Both grey out automatically when there's nothing left to undo/redo,
-     and drawing something new clears the redo history, same as any editor.
+   - The **second icon** cycles through tools: **Pen → Marker → Eraser →
+     Pen...** — the icon changes to show which one is selected, and glows
+     purple whenever it's Marker or Eraser. The Marker draws a translucent
+     highlighter stroke instead of solid ink; drag over a drawing with the
+     Eraser to erase just that part (not the whole thing).
+   - The **colored circle** opens the settings panel for whichever tool is
+     active. For **Pen** and **Marker**: drag on the wheel to pick any
+     color, use the brightness slider for lighter/darker shades, or tap a
+     quick-pick swatch (the active one gets a highlighted ring). The
+     **Marker** panel also has an **Opacity** slider — lower it for a
+     lighter, more transparent highlight. **Brush size** resizes whichever
+     tool is active (pen width, marker width, or eraser size); for the
+     **Eraser**, the color/opacity controls hide automatically since they
+     don't apply. At the bottom, tap the **stylus icon** to turn on
+     stylus-only mode — while it's glowing, the canvas ignores finger
+     touches completely and only your S-Pen/stylus tip draws; tap it again
+     to let both finger and pen draw. Tap the X to close the panel.
+   - **Undo** removes the last stroke; **Redo** brings it back. Both grey
+     out automatically when there's nothing left to undo/redo, and drawing
+     something new clears the redo history, same as any editor.
    - **Clear** wipes everything.
    - The **X** on the far right stops the overlay completely.
    - Drag the small **dotted handle** on the far left of the toolbar to move

@@ -42,13 +42,17 @@ class OverlayService : Service() {
     private lateinit var toolbarParams: WindowManager.LayoutParams
     private lateinit var colorSwatch: ColorSwatchView
     private lateinit var btnToggleMode: ImageButton
-    private lateinit var btnEraser: ImageButton
+    private lateinit var btnTool: ImageButton
 
     private lateinit var styleView: View
     private lateinit var styleParams: WindowManager.LayoutParams
+    private lateinit var panelTitle: android.widget.TextView
+    private lateinit var colorGroup: LinearLayout
+    private lateinit var opacityGroup: LinearLayout
     private lateinit var colorWheel: ColorWheelView
     private lateinit var brightnessSeek: SeekBar
     private lateinit var strokeSeek: SeekBar
+    private lateinit var opacitySeek: SeekBar
     private lateinit var btnStylusOnly: ImageButton
     private val presetViews = mutableListOf<ColorSwatchView>()
     private var stylePanelVisible = false
@@ -90,6 +94,19 @@ class OverlayService : Service() {
         button.setBackgroundResource(
             if (active) R.drawable.bg_icon_button_active else R.drawable.bg_icon_button
         )
+    }
+
+    /** Reflects the currently-selected tool (Pen/Marker/Eraser) on the cycle button. */
+    private fun updateToolButtonUi() {
+        val tool = drawingView.getTool()
+        btnTool.setImageResource(
+            when (tool) {
+                DrawingView.Tool.PEN -> R.drawable.ic_pen
+                DrawingView.Tool.MARKER -> R.drawable.ic_marker
+                DrawingView.Tool.ERASER -> R.drawable.ic_eraser
+            }
+        )
+        setToggleActive(btnTool, tool != DrawingView.Tool.PEN)
     }
 
     /**
@@ -156,27 +173,34 @@ class OverlayService : Service() {
 
         val dragHandle = toolbarView.findViewById<View>(R.id.dragHandle)
         btnToggleMode = toolbarView.findViewById(R.id.btnToggleMode)
-        btnEraser = toolbarView.findViewById(R.id.btnEraser)
+        btnTool = toolbarView.findViewById(R.id.btnTool)
         colorSwatch = toolbarView.findViewById(R.id.colorSwatch)
         val btnUndo = toolbarView.findViewById<ImageButton>(R.id.btnUndo)
         val btnRedo = toolbarView.findViewById<ImageButton>(R.id.btnRedo)
         val btnClear = toolbarView.findViewById<ImageButton>(R.id.btnClear)
         val btnExit = toolbarView.findViewById<ImageButton>(R.id.btnExit)
 
-        colorSwatch.setColorValue(drawingView.getColor())
+        colorSwatch.setColorValue(drawingView.getActiveColor())
+        updateToolButtonUi()
 
         btnToggleMode.setOnClickListener {
             drawModeOn = !drawModeOn
             applyDrawMode()
         }
-        btnEraser.setOnClickListener {
-            val turningOn = !drawingView.isEraserMode()
-            drawingView.setEraserMode(turningOn)
-            if (turningOn && !drawModeOn) {
-                // Turning the eraser on only makes sense while the overlay is
-                // actively capturing touches, so switch out of pass-through.
+        btnTool.setOnClickListener {
+            val next = when (drawingView.getTool()) {
+                DrawingView.Tool.PEN -> DrawingView.Tool.MARKER
+                DrawingView.Tool.MARKER -> DrawingView.Tool.ERASER
+                DrawingView.Tool.ERASER -> DrawingView.Tool.PEN
+            }
+            drawingView.setTool(next)
+            if (next != DrawingView.Tool.PEN && !drawModeOn) {
+                // Picking a non-default tool only makes sense while the
+                // overlay is actively capturing touches.
                 drawModeOn = true
             }
+            colorSwatch.setColorValue(drawingView.getActiveColor())
+            updateToolButtonUi()
             applyDrawMode()
         }
         colorSwatch.setOnClickListener { toggleStylePanel() }
@@ -233,7 +257,6 @@ class OverlayService : Service() {
 
         btnToggleMode.setImageResource(if (drawModeOn) R.drawable.ic_pen else R.drawable.ic_pan)
         setToggleActive(btnToggleMode, drawModeOn)
-        setToggleActive(btnEraser, drawingView.isEraserMode())
 
         if (drawModeOn) {
             startPenPulse(btnToggleMode)
@@ -244,7 +267,7 @@ class OverlayService : Service() {
         // Tool selectors only matter while the overlay is actively capturing
         // touches, so dim them during pass-through to signal that.
         val toolAlpha = if (drawModeOn) 1f else 0.4f
-        btnEraser.alpha = toolAlpha
+        btnTool.alpha = toolAlpha
         colorSwatch.alpha = toolAlpha
     }
 
@@ -266,17 +289,21 @@ class OverlayService : Service() {
         styleView.visibility = View.GONE
         windowManager.addView(styleView, styleParams)
 
+        panelTitle = styleView.findViewById(R.id.panelTitle)
+        colorGroup = styleView.findViewById(R.id.colorGroup)
+        opacityGroup = styleView.findViewById(R.id.opacityGroup)
         colorWheel = styleView.findViewById(R.id.colorWheel)
         brightnessSeek = styleView.findViewById(R.id.brightnessSeek)
         strokeSeek = styleView.findViewById(R.id.strokeSeek)
+        opacitySeek = styleView.findViewById(R.id.opacitySeek)
         btnStylusOnly = styleView.findViewById(R.id.btnStylusOnly)
         val presetRow = styleView.findViewById<LinearLayout>(R.id.presetRow)
         val btnPanelClose = styleView.findViewById<ImageButton>(R.id.btnPanelClose)
 
-        colorWheel.setColorExternally(drawingView.getColor())
+        colorWheel.setColorExternally(drawingView.getActiveColor())
 
         colorWheel.onColorChanged = { color ->
-            drawingView.setColor(color)
+            drawingView.setActiveColor(color)
             colorSwatch.setColorValue(color)
             refreshPresetSelection(color)
         }
@@ -287,7 +314,7 @@ class OverlayService : Service() {
                 colorWheel.invalidate()
                 if (fromUser) {
                     val color = colorWheel.currentColor()
-                    drawingView.setColor(color)
+                    drawingView.setActiveColor(color)
                     colorSwatch.setColorValue(color)
                     refreshPresetSelection(color)
                 }
@@ -296,16 +323,24 @@ class OverlayService : Service() {
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
-        // The brush-size slider always controls whichever tool is currently
-        // selected: pen width normally, eraser width while erasing.
+        // The brush-size slider always controls whichever tool is currently selected.
         strokeSeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
                 val width = progress.coerceAtLeast(4).toFloat()
-                if (drawingView.isEraserMode()) {
-                    drawingView.setEraserWidth(width)
-                } else {
-                    drawingView.setStrokeWidth(width)
+                when (drawingView.getTool()) {
+                    DrawingView.Tool.PEN -> drawingView.setStrokeWidth(width)
+                    DrawingView.Tool.MARKER -> drawingView.setMarkerWidth(width)
+                    DrawingView.Tool.ERASER -> drawingView.setEraserWidth(width)
                 }
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+
+        // Opacity only ever applies to the marker (see opacityGroup visibility).
+        opacitySeek.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                drawingView.setMarkerOpacity(progress / 100f)
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) {}
@@ -323,7 +358,7 @@ class OverlayService : Service() {
             }
             swatch.setColorValue(c)
             swatch.setOnClickListener {
-                drawingView.setColor(c)
+                drawingView.setActiveColor(c)
                 colorSwatch.setColorValue(c)
                 colorWheel.setColorExternally(c)
                 brightnessSeek.progress = (colorWheel.value * 100).toInt()
@@ -332,7 +367,7 @@ class OverlayService : Service() {
             presetRow.addView(swatch)
             presetViews.add(swatch)
         }
-        refreshPresetSelection(drawingView.getColor())
+        refreshPresetSelection(drawingView.getActiveColor())
 
         setToggleActive(btnStylusOnly, drawingView.isStylusOnlyMode())
         btnStylusOnly.setOnClickListener {
@@ -351,14 +386,44 @@ class OverlayService : Service() {
         }
     }
 
+    /** Shows/hides and re-syncs panel sections to match whichever tool is active. */
+    private fun refreshPanelForActiveTool() {
+        val tool = drawingView.getTool()
+
+        panelTitle.text = when (tool) {
+            DrawingView.Tool.PEN -> "Pen settings"
+            DrawingView.Tool.MARKER -> "Marker settings"
+            DrawingView.Tool.ERASER -> "Eraser settings"
+        }
+
+        // Color has no meaning for the eraser; opacity only means anything for the marker.
+        colorGroup.visibility = if (tool == DrawingView.Tool.ERASER) View.GONE else View.VISIBLE
+        opacityGroup.visibility = if (tool == DrawingView.Tool.MARKER) View.VISIBLE else View.GONE
+
+        if (tool != DrawingView.Tool.ERASER) {
+            val color = drawingView.getActiveColor()
+            colorWheel.setColorExternally(color)
+            brightnessSeek.progress = (colorWheel.value * 100).toInt()
+            refreshPresetSelection(color)
+        }
+
+        strokeSeek.progress = when (tool) {
+            DrawingView.Tool.PEN -> drawingView.getStrokeWidth().toInt()
+            DrawingView.Tool.MARKER -> drawingView.getMarkerWidth().toInt()
+            DrawingView.Tool.ERASER -> drawingView.getEraserWidth().toInt()
+        }
+
+        if (tool == DrawingView.Tool.MARKER) {
+            opacitySeek.progress = (drawingView.getMarkerOpacity() * 100).toInt()
+        }
+    }
+
     private fun toggleStylePanel() {
         stylePanelVisible = !stylePanelVisible
         styleView.visibility = if (stylePanelVisible) View.VISIBLE else View.GONE
 
         if (stylePanelVisible) {
-            // Refresh controls to reflect whichever tool is active right now.
-            strokeSeek.progress = if (drawingView.isEraserMode())
-                drawingView.getEraserWidth().toInt() else drawingView.getStrokeWidth().toInt()
+            refreshPanelForActiveTool()
         }
 
         styleParams.flags = if (stylePanelVisible) {
