@@ -477,11 +477,10 @@ class OverlayService : Service() {
         }
 
         styleParams.flags = if (stylePanelVisible) {
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_DIM_BEHIND
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
         } else {
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         }
-        styleParams.dimAmount = 0.45f
         windowManager.updateViewLayout(styleView, styleParams)
     }
 
