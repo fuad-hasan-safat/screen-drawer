@@ -42,11 +42,13 @@ class OverlayService : Service() {
     private lateinit var toolbarParams: WindowManager.LayoutParams
     private lateinit var colorSwatch: ColorSwatchView
     private lateinit var btnToggleMode: ImageButton
-    private lateinit var btnTool: ImageButton
 
     private lateinit var styleView: View
     private lateinit var styleParams: WindowManager.LayoutParams
     private lateinit var panelTitle: android.widget.TextView
+    private lateinit var btnToolPen: ImageButton
+    private lateinit var btnToolMarker: ImageButton
+    private lateinit var btnToolEraser: ImageButton
     private lateinit var colorGroup: LinearLayout
     private lateinit var opacityGroup: LinearLayout
     private lateinit var colorWheel: ColorWheelView
@@ -96,17 +98,12 @@ class OverlayService : Service() {
         )
     }
 
-    /** Reflects the currently-selected tool (Pen/Marker/Eraser) on the cycle button. */
-    private fun updateToolButtonUi() {
+    /** Highlights exactly one of the three panel tool buttons - whichever is active. */
+    private fun updateToolSelectorUi() {
         val tool = drawingView.getTool()
-        btnTool.setImageResource(
-            when (tool) {
-                DrawingView.Tool.PEN -> R.drawable.ic_pen
-                DrawingView.Tool.MARKER -> R.drawable.ic_marker
-                DrawingView.Tool.ERASER -> R.drawable.ic_eraser
-            }
-        )
-        setToggleActive(btnTool, tool != DrawingView.Tool.PEN)
+        setToggleActive(btnToolPen, tool == DrawingView.Tool.PEN)
+        setToggleActive(btnToolMarker, tool == DrawingView.Tool.MARKER)
+        setToggleActive(btnToolEraser, tool == DrawingView.Tool.ERASER)
     }
 
     /**
@@ -173,7 +170,6 @@ class OverlayService : Service() {
 
         val dragHandle = toolbarView.findViewById<View>(R.id.dragHandle)
         btnToggleMode = toolbarView.findViewById(R.id.btnToggleMode)
-        btnTool = toolbarView.findViewById(R.id.btnTool)
         colorSwatch = toolbarView.findViewById(R.id.colorSwatch)
         val btnUndo = toolbarView.findViewById<ImageButton>(R.id.btnUndo)
         val btnRedo = toolbarView.findViewById<ImageButton>(R.id.btnRedo)
@@ -181,26 +177,9 @@ class OverlayService : Service() {
         val btnExit = toolbarView.findViewById<ImageButton>(R.id.btnExit)
 
         colorSwatch.setColorValue(drawingView.getActiveColor())
-        updateToolButtonUi()
 
         btnToggleMode.setOnClickListener {
             drawModeOn = !drawModeOn
-            applyDrawMode()
-        }
-        btnTool.setOnClickListener {
-            val next = when (drawingView.getTool()) {
-                DrawingView.Tool.PEN -> DrawingView.Tool.MARKER
-                DrawingView.Tool.MARKER -> DrawingView.Tool.ERASER
-                DrawingView.Tool.ERASER -> DrawingView.Tool.PEN
-            }
-            drawingView.setTool(next)
-            if (next != DrawingView.Tool.PEN && !drawModeOn) {
-                // Picking a non-default tool only makes sense while the
-                // overlay is actively capturing touches.
-                drawModeOn = true
-            }
-            colorSwatch.setColorValue(drawingView.getActiveColor())
-            updateToolButtonUi()
             applyDrawMode()
         }
         colorSwatch.setOnClickListener { toggleStylePanel() }
@@ -264,11 +243,9 @@ class OverlayService : Service() {
             stopPenPulse(btnToggleMode)
         }
 
-        // Tool selectors only matter while the overlay is actively capturing
-        // touches, so dim them during pass-through to signal that.
-        val toolAlpha = if (drawModeOn) 1f else 0.4f
-        btnTool.alpha = toolAlpha
-        colorSwatch.alpha = toolAlpha
+        // The color swatch only matters while the overlay is actively
+        // capturing touches, so dim it during pass-through to signal that.
+        colorSwatch.alpha = if (drawModeOn) 1f else 0.4f
     }
 
     // ---------------------------------------------------------------------
@@ -276,8 +253,16 @@ class OverlayService : Service() {
     // ---------------------------------------------------------------------
 
     private fun setupStylePanel() {
+        // IMPORTANT: this window's width must be a fixed pixel value, not
+        // WRAP_CONTENT. The panel's content uses match_parent widths (for
+        // sliders, dividers, etc.), and on several OEM skins a WRAP_CONTENT
+        // overlay window combined with match_parent descendants measures
+        // those descendants against an undefined/near-zero width - which is
+        // exactly the "squeezed into a thin strip" bug. Giving the window a
+        // concrete width removes that ambiguity entirely.
+        val panelWidthPx = (300 * resources.displayMetrics.density).toInt()
         styleParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
+            panelWidthPx,
             WindowManager.LayoutParams.WRAP_CONTENT,
             overlayType(),
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
@@ -290,6 +275,9 @@ class OverlayService : Service() {
         windowManager.addView(styleView, styleParams)
 
         panelTitle = styleView.findViewById(R.id.panelTitle)
+        btnToolPen = styleView.findViewById(R.id.btnToolPen)
+        btnToolMarker = styleView.findViewById(R.id.btnToolMarker)
+        btnToolEraser = styleView.findViewById(R.id.btnToolEraser)
         colorGroup = styleView.findViewById(R.id.colorGroup)
         opacityGroup = styleView.findViewById(R.id.opacityGroup)
         colorWheel = styleView.findViewById(R.id.colorWheel)
@@ -376,6 +364,23 @@ class OverlayService : Service() {
             setToggleActive(btnStylusOnly, turningOn)
         }
 
+        updateToolSelectorUi()
+        val onToolPicked: (DrawingView.Tool) -> Unit = { tool ->
+            drawingView.setTool(tool)
+            if (!drawModeOn) {
+                // Picking a tool from the panel means "I want to use this
+                // now", so make sure the overlay is actively capturing touches.
+                drawModeOn = true
+                applyDrawMode()
+            }
+            colorSwatch.setColorValue(drawingView.getActiveColor())
+            updateToolSelectorUi()
+            refreshPanelForActiveTool()
+        }
+        btnToolPen.setOnClickListener { onToolPicked(DrawingView.Tool.PEN) }
+        btnToolMarker.setOnClickListener { onToolPicked(DrawingView.Tool.MARKER) }
+        btnToolEraser.setOnClickListener { onToolPicked(DrawingView.Tool.ERASER) }
+
         btnPanelClose.setOnClickListener { toggleStylePanel() }
     }
 
@@ -389,6 +394,7 @@ class OverlayService : Service() {
     /** Shows/hides and re-syncs panel sections to match whichever tool is active. */
     private fun refreshPanelForActiveTool() {
         val tool = drawingView.getTool()
+        updateToolSelectorUi()
 
         panelTitle.text = when (tool) {
             DrawingView.Tool.PEN -> "Pen settings"
