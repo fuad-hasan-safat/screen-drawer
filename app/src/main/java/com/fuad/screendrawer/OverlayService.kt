@@ -310,6 +310,7 @@ class OverlayService : Service() {
         styleView.visibility = View.GONE
         windowManager.addView(styleView, styleParams)
 
+        val panelDragHandle = styleView.findViewById<View>(R.id.dragHandle)
         panelTitle = styleView.findViewById(R.id.panelTitle)
         colorGroup = styleView.findViewById(R.id.colorGroup)
         opacityGroup = styleView.findViewById(R.id.opacityGroup)
@@ -398,6 +399,34 @@ class OverlayService : Service() {
         }
 
         btnPanelClose.setOnClickListener { toggleStylePanel() }
+
+        // Lets the user reposition the panel exactly like the toolbar - drag
+        // by its handle only, so the title/close button stay tap-only.
+        panelDragHandle.setOnTouchListener(object : View.OnTouchListener {
+            var startX = 0
+            var startY = 0
+            var touchX = 0f
+            var touchY = 0f
+
+            override fun onTouch(v: View, event: MotionEvent): Boolean {
+                when (event.action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        startX = styleParams.x
+                        startY = styleParams.y
+                        touchX = event.rawX
+                        touchY = event.rawY
+                        return true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        styleParams.x = startX + (event.rawX - touchX).toInt()
+                        styleParams.y = startY + (event.rawY - touchY).toInt()
+                        windowManager.updateViewLayout(styleView, styleParams)
+                        return true
+                    }
+                }
+                return false
+            }
+        })
     }
 
     /** Lights up whichever preset swatch (if any) exactly matches the given color. */

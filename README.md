@@ -25,6 +25,9 @@ app — with a modern floating toolbar and a full color picker.
   accent glow (plus a subtle breathing pulse on the pen icon while draw mode
   is live), the panel has a gradient "glass" card with an accent stripe, and
   the currently-picked preset color gets a highlighted ring
+- The settings panel is draggable too — grab its handle (next to the title)
+  to move it anywhere on screen, same as the toolbar. Opening it still dims
+  the rest of the screen so it stands out.
 - Undo **and Redo**, both per-stroke (color/width included) and correctly
   invalidated the moment you draw something new after undoing
 
@@ -74,16 +77,18 @@ it in the cloud for you — no local setup needed. This gets you the real
      instead of solid ink; the Eraser erases just the part of the drawing
      you drag over, not the whole thing.
    - The **colored circle** opens the settings panel for whichever tool is
-     active. For **Pen** and **Marker**: drag on the color wheel to pick any
-     color, use the brightness slider for lighter/darker shades, or tap a
-     quick-pick swatch (the active one gets a highlighted ring). The
-     **Marker** panel also has an **Opacity** slider — lower it for a
-     lighter, more transparent highlight. **Brush size** resizes whichever
-     tool is selected; for the **Eraser**, the color/opacity controls hide
-     automatically since they don't apply. At the bottom, tap the **stylus
-     icon** to turn on stylus-only mode — while it's glowing, the canvas
-     ignores finger touches completely and only your S-Pen/stylus tip
-     draws; tap it again to let both finger and pen draw. Tap the X to
+     active — it has its own **dotted handle** next to the title so you can
+     drag it anywhere on screen too, same as the toolbar; opening it dims
+     the rest of the screen. For **Pen** and **Marker**: drag on the color
+     wheel to pick any color, use the brightness slider for lighter/darker
+     shades, or tap a quick-pick swatch (the active one gets a highlighted
+     ring). The **Marker** panel also has an **Opacity** slider — lower it
+     for a lighter, more transparent highlight. **Brush size** resizes
+     whichever tool is selected; for the **Eraser**, the color/opacity
+     controls hide automatically since they don't apply. At the bottom, tap
+     the **stylus icon** to turn on stylus-only mode — while it's glowing,
+     the canvas ignores finger touches completely and only your S-Pen/stylus
+     tip draws; tap it again to let both finger and pen draw. Tap the X to
      close the panel.
    - **Undo** removes the last stroke; **Redo** brings it back. Both grey
      out automatically when there's nothing left to undo/redo, and drawing

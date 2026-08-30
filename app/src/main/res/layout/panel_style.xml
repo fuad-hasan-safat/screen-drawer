@@ -20,11 +20,20 @@
         android:orientation="horizontal"
         android:gravity="center_vertical">
 
+        <ImageView
+            android:id="@+id/dragHandle"
+            android:layout_width="24dp"
+            android:layout_height="32dp"
+            android:padding="6dp"
+            android:src="@drawable/ic_drag_handle"
+            android:tint="@color/color_muted" />
+
         <TextView
             android:id="@+id/panelTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
+            android:layout_marginStart="4dp"
             android:text="Pen settings"
             android:textColor="@color/color_on_dark"
             android:textSize="17sp"
